@@ -5,7 +5,6 @@ import Storage from './storage';
 import AudioEngine from 'scratch-audio';
 import {BitmapAdapter} from 'scratch-svg-renderer';
 import JSZip from 'jszip';
-
 import {EventTarget} from '../common/event-target';
 import VideoProvider from './video';
 import Cloud from './cloud';
@@ -15,6 +14,8 @@ import ControlBar from './control-bar';
 import {isValidListValue, isValidVariableValue} from './verify-value';
 import defaultMessages from './messages.json';
 import styles from './style.css';
+import extension from './clipExtension'
+
 
 const getEventXY = (e) => {
   if (e.touches && e.touches[0]) {
@@ -24,6 +25,8 @@ const getEventXY = (e) => {
   }
   return {x: e.clientX, y: e.clientY};
 };
+
+
 
 class Scaffolding extends EventTarget {
   constructor () {
@@ -543,5 +546,6 @@ export {
   Renderer,
   Storage,
   AudioEngine,
-  JSZip
+  JSZip,
+  extension
 };

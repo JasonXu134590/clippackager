@@ -1,6 +1,5 @@
 import {EventTarget, CustomEvent} from '../common/event-target';
 import sha256 from './sha256';
-import {extensionManager} from 'clipcc-extension';
 import escapeXML from '../common/escape-xml';
 import largeAssets from './large-assets';
 import request from '../common/request';
@@ -12,7 +11,6 @@ import {APP_NAME, WEBSITE, COPYRIGHT_NOTICE, ACCENT_COLOR} from './brand';
 import {OutdatedPackagerError} from '../common/errors';
 import {darken} from './colors';
 import {Adapter} from './adapter';
-import vm from 'vm';
 
 const PROGRESS_LOADED_SCRIPTS = 0.1;
 
@@ -917,7 +915,6 @@ cd "$(dirname "$0")"
         xhr.send();
       })`;
     }
-
     result += `
     <script>
       const getProjectData = (function() {
@@ -952,39 +949,11 @@ cd "$(dirname "$0")"
             throw new Error('project.json is not in zip');
           }
           for (const file in zip.files) {
-            if (/^extensions\\/.\\+\\.ccx/g.test(file)) {
+            if (file.substring(0,11)=="extensions/"&&file.substring(file.length-4,file.length)==".ccx") {
                 console.log(file);
-              const extData = await zip.files[file].async('arraybuffer');
-              
-              let instance;
-              let info;
-              if (!('info.json' in zipData.files)) return;
-              const content = await extData.files['info.json'].async('text');
-              info = JSON.parse(content);
-              if (info.icon) {
-                const data = await extData.files[info.icon].async('arraybuffer');
-                info.icon = URL.createObjectURL(new Blob(
-                  [data], {type: mime.lookup(info.icon)}
-                ));
-              }
-              if (info.inset_icon) {
-                const data = await extData.files[info.inset_icon].async('blob');
-                info.inset_icon = URL.createObjectURL(new Blob(
-                  [data], {type: mime.lookup(info.inset_icon)}
-                ));
-              }
-              info.api = 1;
-              
-              // Load extension class
-              if ('main.js' in extData.files) {
-                const script = new vm.Script(await extData.files['main.js'].async('text'));
-                const ExtensionPrototype = script.runInThisContext();
-                instance = new ExtensionPrototype();
-              } else return;
-              
-              // locale and settings is unnecessary for packager
-              
-              await extensionManager.addInstance(info.id, info, instance);
+              const extensionFile = await Scaffolding.JSZip.loadAsync(zip.files[file].async('arraybuffer'));
+              console.log(extensionFile)
+              Scaffolding.extension.addExtension(extensionFile);
             }
           }
           return file.async('arraybuffer');
@@ -1451,7 +1420,7 @@ cd "$(dirname "$0")"
         zip = await (await getJSZip()).loadAsync(this.project.arrayBuffer);
         for (const file of Object.keys(zip.files)) {
           // 跳过 ccx
-          if (/^extensions\/.+\.ccx$/g.test(file)) continue;
+          if (file.substring(0,11)=="extensions/"&&file.substring(file.length-4,file.length)==".ccx") continue;
           else zip.files[`assets/${file}`] = zip.files[file];
           delete zip.files[file];
         }
